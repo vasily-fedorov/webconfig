@@ -231,16 +231,22 @@ def _form_to_dict(form_data) -> dict:
 
 
 def _parse_key(key: str) -> list:
-    """Parse 'servers[0].name' → ['servers', 0, 'name'] or 'server.host' → ['server', 'host']."""
+    """Parse 'servers[0].name' → ['servers', 0, 'name'] or 'matrix[0][1]' → ['matrix', 0, 1]."""
     import re
 
     result = []
+    # Split on dots, then split each segment on brackets
     for segment in key.split("."):
-        m = re.match(r"^(\w+)(?:\[(\d+)\])?$", segment)
-        if m:
-            result.append(m.group(1))
-            if m.group(2) is not None:
-                result.append(int(m.group(2)))
+        # Match patterns like 'name', 'name[0]', 'name[0][1]'
+        parts = re.split(r"(\[\d+\])", segment)
+        for part in parts:
+            if not part:
+                continue
+            m = re.match(r"^\[(\d+)\]$", part)
+            if m:
+                result.append(int(m.group(1)))
+            else:
+                result.append(part)
     return result
 
 
@@ -268,7 +274,10 @@ def _set_nested(d: dict, key: str, value):
     for i, part in enumerate(parts):
         if isinstance(part, int):
             while len(node) <= part:
-                node.append({} if i + 1 < len(parts) else None)
+                if i + 1 < len(parts):
+                    node.append([] if isinstance(parts[i + 1], int) else {})
+                else:
+                    node.append(None)
             if i == len(parts) - 1:
                 node[part] = value
             else:
