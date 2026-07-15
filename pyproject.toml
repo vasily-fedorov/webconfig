@@ -1,0 +1,16 @@
+[project]
+name = "webconfig"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0",
+    "jsonschema>=4.20",
+]
+
+[project.scripts]
+webconfig = "webconfig.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]

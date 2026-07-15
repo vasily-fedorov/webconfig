@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en"{% if preset != "auto" %} preset="{{ preset }}"{% endif %}>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>webconfig — {{ filename }}</title>
+    <script src="/static/s4/js/s4.min.js"></script>
+    <script>S4()</script>
+    <script src="/static/htmx.min.js"></script>
+    <style>
+        .field-error { color: var(--negative, #dc2626); font-size: var(--font-size--s1, 0.875em); }
+        .field-hint { color: var(--black--06, #666); font-size: var(--font-size--s1, 0.875em); }
+        .flash-success { color: var(--success, #16a34a); }
+        #editor-container { max-width: 56em; margin: 0 auto; }
+        .form-row { display: flex; flex-direction: column; gap: 0.25em; margin-bottom: 1em; }
+        .form-row-inline { display: flex; align-items: center; gap: 0.5em; }
+        .array-item { display: flex; align-items: flex-start; gap: 0.5em; margin-bottom: 0.5em; }
+        .array-item .form-row { flex: 1; margin-bottom: 0; }
+        .remove-btn { color: var(--negative, #dc2626); background: none; border: none; cursor: pointer; font-size: 1.2em; line-height: 1; padding: 0.25em; }
+        .section-header { display: flex; align-items: center; gap: 0.5em; cursor: pointer; padding: 0.5em 0; }
+        .section-header .type-badge { font-size: var(--font-size--s2, 0.75em); color: var(--black--05, #888); }
+        .required-star { color: var(--negative, #dc2626); }
+        header { display: flex; align-items: center; justify-content: space-between; padding: 1em 0; border-bottom: 1px solid var(--black--02, #e5e7eb); margin-bottom: 1.5em; }
+        header .toolbar { display: flex; align-items: center; gap: 0.75em; }
+        header h1 { font-size: var(--font-size--l1, 1.25em); margin: 0; }
+        .field-wrapper { margin-left: 1.5em; border-left: 1px solid var(--black--02, #e5e7eb); padding-left: 1em; }
+    </style>
+</head>
+<body>
+    <div id="editor-container" style="padding: 0 1em 2em;">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

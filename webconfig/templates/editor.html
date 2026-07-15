@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block content %}
+{# --- Header --- #}
+<header>
+    <div>
+        <h1>{{ filename }}</h1>
+        <span class="type-badge">{{ format }}</span>
+    </div>
+    <div class="toolbar">
+        {% if saved_message %}
+            <span class="flash-success">{{ saved_message }}</span>
+        {% endif %}
+        {% if error_message %}
+            <span class="flash-error" style="color: var(--negative, #dc2626);">{{ error_message }}</span>
+        {% endif %}
+        <button hx-post="/save" hx-swap="outerHTML" hx-target="#editor-container">
+            Save
+        </button>
+        <button hx-get="/reload" hx-swap="outerHTML" hx-target="#editor-container">
+            Reload
+        </button>
+        {% if preset == "auto" %}
+            <span style="font-size: var(--font-size--s2, 0.75em); color: var(--black--05, #888);">theme: auto</span>
+        {% else %}
+            <span style="font-size: var(--font-size--s2, 0.75em);">{{ preset }}</span>
+        {% endif %}
+    </div>
+</header>
+
+{# --- Main Form --- #}
+<form id="config-form" hx-post="/save" hx-swap="outerHTML" hx-target="#editor-container">
+    {% if field %}
+    <div class="field-wrapper" style="margin-left: 0; border-left: none; padding-left: 0;">
+        {{ render_children(field.children, "") }}
+    </div>
+    {% endif %}
+</form>
+{% endblock %}
+
+
+{# ===== MACROS ===== #}
+
+{% macro render_children(children, parent_path) %}
+    {% for child in children %}
+        {% set full_path = parent_path ~ "." ~ child.key if parent_path else child.key %}
+        {% if child.field_type == "object" %}
+            {{ render_object(child, full_path) }}
+        {% elif child.field_type == "array" %}
+            {{ render_array(child, full_path) }}
+        {% elif child.field_type == "boolean" %}
+            {{ render_boolean(child, full_path) }}
+        {% elif child.field_type == "select" %}
+            {{ render_select(child, full_path) }}
+        {% else %}
+            {{ render_scalar(child, full_path) }}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+
+{% macro render_object(field, path) %}
+    <details open>
+        <summary class="section-header">
+            <strong>{{ field.label }}</strong>
+            <span class="type-badge">object</span>
+            {% if field.description %}
+                <span class="field-hint" title="{{ field.description }}">?</span>
+            {% endif %}
+        </summary>
+        <div class="field-wrapper">
+            {{ render_children(field.children, path) }}
+        </div>
+    </details>
+{% endmacro %}
+
+
+{% macro render_array(field, path) %}
+    {% set safe_id = path|replace('.', '-') %}
+    <details open>
+        <summary class="section-header">
+            <strong>{{ field.label }}</strong>
+            <span class="type-badge">array[{{ field.children|length }}]</span>
+            {% if field.description %}
+                <span class="field-hint" title="{{ field.description }}">?</span>
+            {% endif %}
+        </summary>
+        <div class="field-wrapper" id="array-{{ safe_id }}">
+            {% for item in field.children %}
+                {% set item_path = path ~ "[" ~ loop.index0 ~ "]" %}
+                {% if item.field_type == "object" %}
+                    <div class="array-item">
+                        <div style="flex: 1;">
+                            {{ render_object_inline(item, item_path) }}
+                        </div>
+                        <button class="remove-btn"
+                                hx-delete="/api/array/remove/{{ path }}/{{ loop.index0 }}"
+                                hx-target="#array-{{ safe_id }}"
+                                hx-swap="outerHTML"
+                                title="Remove item">&times;</button>
+                    </div>
+                {% else %}
+                    <div class="array-item">
+                        <div class="form-row" style="flex: 1;">
+                            {{ render_scalar(item, item_path) }}
+                        </div>
+                        <button class="remove-btn"
+                                hx-delete="/api/array/remove/{{ path }}/{{ loop.index0 }}"
+                                hx-target="#array-{{ safe_id }}"
+                                hx-swap="outerHTML"
+                                title="Remove item">&times;</button>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <button type="button"
+                    hx-post="/api/array/add/{{ path }}"
+                    hx-target="#array-{{ safe_id }}"
+                    hx-swap="outerHTML"
+                    style="margin-top: 0.5em;">
+                + Add item
+            </button>
+        </div>
+    </details>
+{% endmacro %}
+
+
+{% macro render_object_inline(field, path) %}
+    <details open>
+        <summary class="section-header">
+            <strong>{{ field.label }}</strong>
+            <span class="type-badge">object</span>
+        </summary>
+        <div class="field-wrapper">
+            {{ render_children(field.children, path) }}
+        </div>
+    </details>
+{% endmacro %}
+
+
+{% macro render_scalar(field, path) %}
+    {% set input_id = path|replace('.', '-')|replace('[', '-')|replace(']', '') %}
+    <div class="form-row">
+        <label for="{{ input_id }}">
+            {{ field.label }}
+            {% if field.required %}<span class="required-star">*</span>{% endif %}
+            {% if field.description %}
+                <span class="field-hint" title="{{ field.description }}">?</span>
+            {% endif %}
+        </label>
+
+        {% if field.field_type == "textarea" %}
+            <textarea id="{{ input_id }}" name="{{ path }}"
+                      rows="3"
+                      hx-post="/api/validate/{{ path }}"
+                      hx-trigger="change"
+                      hx-target="#err-{{ input_id }}"
+                      hx-swap="innerHTML">{{ field.value if field.value is not none else "" }}</textarea>
+        {% elif field.field_type == "number" %}
+            <input type="number" id="{{ input_id }}" name="{{ path }}"
+                   value="{{ field.value }}"
+                   {% if field.constraints.get('minimum') is not none %}min="{{ field.constraints.minimum }}"{% endif %}
+                   {% if field.constraints.get('maximum') is not none %}max="{{ field.constraints.maximum }}"{% endif %}
+                   hx-post="/api/validate/{{ path }}"
+                   hx-trigger="change"
+                   hx-target="#err-{{ input_id }}"
+                   hx-swap="innerHTML" />
+        {% else %}
+            <input type="text" id="{{ input_id }}" name="{{ path }}"
+                   value="{{ field.value if field.value is not none else "" }}"
+                   {% if field.constraints.get('pattern') %}pattern="{{ field.constraints.pattern }}"{% endif %}
+                   {% if field.constraints.get('minLength') is not none %}minlength="{{ field.constraints.minLength }}"{% endif %}
+                   {% if field.constraints.get('maxLength') is not none %}maxlength="{{ field.constraints.maxLength }}"{% endif %}
+                   hx-post="/api/validate/{{ path }}"
+                   hx-trigger="change"
+                   hx-target="#err-{{ input_id }}"
+                   hx-swap="innerHTML" />
+        {% endif %}
+
+        <div id="err-{{ input_id }}" class="field-error"></div>
+    </div>
+{% endmacro %}
+
+
+{% macro render_boolean(field, path) %}
+    {% set input_id = path|replace('.', '-')|replace('[', '-')|replace(']', '') %}
+    <div class="form-row-inline" style="margin-bottom: 1em;">
+        <input type="checkbox" id="{{ input_id }}" name="{{ path }}"
+               value="true" {% if field.value %}checked{% endif %}
+               hx-post="/api/validate/{{ path }}"
+               hx-trigger="change"
+               hx-target="#err-{{ input_id }}"
+               hx-swap="innerHTML" />
+        <label for="{{ input_id }}">
+            {{ field.label }}
+            {% if field.required %}<span class="required-star">*</span>{% endif %}
+            {% if field.description %}
+                <span class="field-hint" title="{{ field.description }}">?</span>
+            {% endif %}
+        </label>
+        <input type="hidden" name="{{ path }}" value="false" />
+        <div id="err-{{ input_id }}" class="field-error" style="margin-left: 0.5em;"></div>
+    </div>
+{% endmacro %}
+
+
+{% macro render_select(field, path) %}
+    {% set input_id = path|replace('.', '-')|replace('[', '-')|replace(']', '') %}
+    <div class="form-row">
+        <label for="{{ input_id }}">
+            {{ field.label }}
+            {% if field.required %}<span class="required-star">*</span>{% endif %}
+            {% if field.description %}
+                <span class="field-hint" title="{{ field.description }}">?</span>
+            {% endif %}
+        </label>
+        <select id="{{ input_id }}" name="{{ path }}"
+                hx-post="/api/validate/{{ path }}"
+                hx-trigger="change"
+                hx-target="#err-{{ input_id }}"
+                hx-swap="innerHTML">
+            {% for option in field.enum %}
+                <option value="{{ option }}" {% if field.value == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <div id="err-{{ input_id }}" class="field-error"></div>
+    </div>
+{% endmacro %}
