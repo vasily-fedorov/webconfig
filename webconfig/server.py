@@ -218,22 +218,29 @@ def _form_to_dict(form_data) -> dict:
 
     Keys like "server.host" become nested. Array keys like "items[0]" become lists.
     """
+    import re
+
     result: dict = {}
-    for key in request.form if hasattr(request, "form") else form_data:
-        value = form_data.getlist(key) if hasattr(form_data, "getlist") else [form_data[key]]
-        # For single values, take the last one (checkbox hidden input pattern)
-        if len(value) > 1 and all(v in ("true", "false") for v in value):
-            value = [value[-1]]  # Checkbox: take the last value
-        else:
-            value = value[-1:] if value else [""]
-        value = value[0]
+    for key in form_data:
+        raw = form_data[key]
+        # Handle MultiDict — checkbox sends list, take last value
+        if isinstance(raw, list):
+            raw = raw[-1] if raw else ""
+        _set_nested(result, key, _parse_form_value(raw))
+    return result
 
-        # Parse value
-        typed_value = _parse_form_value(value)
 
-        # Set nested path
-        _set_nested(result, key, typed_value)
+def _parse_key(key: str) -> list:
+    """Parse 'servers[0].name' → ['servers', 0, 'name'] or 'server.host' → ['server', 'host']."""
+    import re
 
+    result = []
+    for segment in key.split("."):
+        m = re.match(r"^(\w+)(?:\[(\d+)\])?$", segment)
+        if m:
+            result.append(m.group(1))
+            if m.group(2) is not None:
+                result.append(int(m.group(2)))
     return result
 
 
@@ -245,7 +252,6 @@ def _parse_form_value(value: str):
         return True
     if value == "false":
         return False
-    # Try numeric
     try:
         if "." in value:
             return float(value)
@@ -256,97 +262,23 @@ def _parse_form_value(value: str):
 
 
 def _set_nested(d: dict, key: str, value):
-    """Set a value in a nested dict using dot notation and array indices.
-
-    Example: _set_nested(d, "server.host", "0.0.0.0") sets d["server"]["host"] = "0.0.0.0"
-    Example: _set_nested(d, "items[0]", "a") sets d["items"][0] = "a"
-    """
-    import re
-
-    # Parse key into path segments: "server", "host" or "items", "[0]"
-    parts = _parse_key_path(key)
-    current = d
+    """Set a value in nested dict using dotted path and array indices."""
+    parts = _parse_key(key)
+    node = d
     for i, part in enumerate(parts):
-        if part.startswith("[") and part.endswith("]"):
-            idx = int(part[1:-1])
-            # Ensure list exists
-            if not isinstance(current, dict):
-                # We're building the dict, find the parent list
-                parent = _get_parent(d, parts[:i])
-                list_key = parts[i - 1] if i > 0 else ""
-                if list_key and list_key in parent:
-                    if not isinstance(parent[list_key], list):
-                        parent[list_key] = []
-                    while len(parent[list_key]) <= idx:
-                        parent[list_key].append("")
-                    parent[list_key][idx] = value
-                return
-            # Navigate through parent key's list
-            parent_key = parts[i - 1]
-            if parent_key not in current:
-                current[parent_key] = []
-            lst = current[parent_key]
-            while len(lst) <= idx:
-                lst.append({} if i + 1 < len(parts) else "")
+        if isinstance(part, int):
+            while len(node) <= part:
+                node.append({} if i + 1 < len(parts) else None)
             if i == len(parts) - 1:
-                lst[idx] = value
+                node[part] = value
             else:
-                if not isinstance(lst[idx], dict):
-                    lst[idx] = {}
-                current = lst[idx]
+                node = node[part]
         else:
             if i == len(parts) - 1:
-                current[part] = value
+                node[part] = value
             else:
-                if part not in current or not isinstance(current[part], dict):
-                    current[part] = {}
-                current = current[part]
-
-
-def _parse_key_path(key: str) -> list[str]:
-    """Parse a form key like 'server.host' or 'items[0].name' into path segments."""
-    import re
-
-    parts = []
-    current = ""
-    in_bracket = False
-
-    for ch in key:
-        if ch == "[":
-            if current:
-                parts.append(current)
-                current = ""
-            in_bracket = True
-            current = "["
-        elif ch == "]":
-            current += "]"
-            parts.append(current)
-            current = ""
-            in_bracket = False
-        elif ch == "." and not in_bracket:
-            if current:
-                parts.append(current)
-                current = ""
-        else:
-            current += ch
-
-    if current:
-        parts.append(current)
-
-    return parts
-
-
-def _get_parent(d: dict, parts: list[str]) -> dict:
-    """Navigate to the parent dict of the given path parts."""
-    current = d
-    for part in parts:
-        if part.startswith("[") and part.endswith("]"):
-            continue
-        if part in current and isinstance(current[part], dict):
-            current = current[part]
-        else:
-            break
-    return current
+                next_is_index = i + 1 < len(parts) and isinstance(parts[i + 1], int)
+                node = node.setdefault(part, [] if next_is_index else {})
 
 
 def _add_array_element(data: dict, path: str):
