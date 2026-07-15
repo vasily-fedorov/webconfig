@@ -203,6 +203,11 @@ class FormGenerator:
                 field_obj.children = self._build_children(
                     value, nested_schema, depth + 1, field_path
                 )
+            elif field_obj.field_type == "object" and value is None:
+                nested_schema = prop_schema if prop_schema else None
+                field_obj.children = self._build_children(
+                    {}, nested_schema, depth + 1, field_path
+                )
 
             # array → build element children
             if isinstance(value, list):
@@ -212,6 +217,12 @@ class FormGenerator:
                 items_schema = prop_schema.get("items", {}) if prop_schema else None
                 field_obj.children = self._build_array_children(
                     value, items_schema, depth + 1, field_path, field_obj.item_type
+                )
+            elif field_obj.field_type == "array" and value is None:
+                field_obj.item_type = self._resolve_item_type(prop_schema, [])
+                items_schema = prop_schema.get("items", {}) if prop_schema else None
+                field_obj.children = self._build_array_children(
+                    [], items_schema, depth + 1, field_path, field_obj.item_type
                 )
 
             children.append(field_obj)
