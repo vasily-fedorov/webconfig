@@ -1,14 +1,14 @@
 {
   "desktop": {
-    "landscape": ["css/desktop/landscape.css", "css/desktop/config.css"],
-    "portrait": ["css/desktop/portrait.css", "css/desktop/config.css"]
+    "landscape": [{"desktop": "landscape"}],
+    "portrait": [{"desktop": "portrait"}]
   },
   "tablet": {
-    "landscape": ["css/tablet/landscape.css", "css/tablet/config.css"],
-    "portrait": ["css/tablet/portrait.css", "css/tablet/config.css"]
+    "landscape": [{"tablet": "landscape"}],
+    "portrait": [{"tablet": "portrait"}]
   },
   "mobile": {
-    "landscape": ["css/mobile/landscape.css", "css/mobile/config.css"],
-    "portrait": ["css/mobile/portrait.css", "css/mobile/config.css"]
+    "landscape": [{"mobile": "landscape"}],
+    "portrait": [{"mobile": "portrait"}]
   }
 }
