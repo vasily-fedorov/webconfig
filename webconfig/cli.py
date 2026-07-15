@@ -41,9 +41,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Color preset (default: auto = system preference)",
     )
     parser.add_argument(
-        "--no-browser",
+        "--browser",
         action="store_true",
-        help="Don't open browser automatically",
+        help="Open browser automatically at startup",
     )
     return parser.parse_args(argv)
 
@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> None:
         print(f" * Schema:   {args.schema}")
     print(" * Press Ctrl+C to stop")
 
-    if not args.no_browser:
+    if args.browser:
         webbrowser.open(url)
 
     try:
