@@ -8,7 +8,7 @@ Webconfig — Python CLI-утилита, запускающая локальны
 * Установка
 
 #+begin_src bash
-git clone <repo-url>
+git clone https://github.com/vasily-fedorov/webconfig.git
 cd webconfig
 python3 -m venv .venv
 .venv/bin/pip install -e .
@@ -16,27 +16,33 @@ python3 -m venv .venv
 
 Python 3.11+.
 
+* Быстрый старт
+
+#+begin_src bash
+# Демо-конфиг со схемой
+webconfig config.toml --schema tests/fixtures/schema.json
+
+# Открыть http://127.0.0.1:8080 в браузере
+#+end_src
+
 * Использование
 
 #+begin_src bash
 # Минимальный вызов (порт по умолчанию 8080)
 webconfig config.toml
 
-# С указанием порта
-webconfig config.json --port 9090
+# С указанием порта и открытием браузера
+webconfig config.json --port 9090 --browser
 
 # С JSON Schema (enum → выпадайки, constraints, дефолты)
 webconfig config.toml --schema schema.json
 
-# Тёмная тема
-webconfig config.env --preset dark
-
-# Без открытия браузера
-webconfig config.toml --no-browser
+# Любой TOML/JSON/.env файл
+webconfig production.toml
 #+end_src
 
-Сервер стартует на ~127.0.0.1~, автоматически открывает браузер.
-Остановка: ~Ctrl+C~.
+Сервер стартует на ~127.0.0.1~, браузер не открывается автоматически
+(флаг ~--browser~ для открытия). Остановка: ~Ctrl+C~.
 
 * Поддерживаемые форматы
 
@@ -73,11 +79,11 @@ webconfig config.toml --no-browser
 # Установка с dev-зависимостями
 .venv/bin/pip install -e ".[dev]"
 
-# Запуск тестов
+# Запуск тестов (110 тестов)
 .venv/bin/pytest tests/ -v
 
-# Запуск в dev-режиме
-.venv/bin/python -m webconfig tests/fixtures/config.toml --schema tests/fixtures/schema.json
+# Демо-запуск
+.venv/bin/python -m webconfig config.toml --schema tests/fixtures/schema.json
 #+end_src
 
 * Структура проекта
