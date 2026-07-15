@@ -20,7 +20,7 @@ Python 3.11+.
 
 #+begin_src bash
 # Демо-конфиг со схемой
-webconfig config.toml --schema tests/fixtures/schema.json
+webconfig tests/fixtures/config.toml --schema tests/fixtures/schema.json
 
 # Открыть http://127.0.0.1:8080 в браузере
 #+end_src
@@ -83,7 +83,7 @@ webconfig production.toml
 .venv/bin/pytest tests/ -v
 
 # Демо-запуск
-.venv/bin/python -m webconfig config.toml --schema tests/fixtures/schema.json
+.venv/bin/python -m webconfig tests/fixtures/config.toml --schema tests/fixtures/schema.json
 #+end_src
 
 * Структура проекта
