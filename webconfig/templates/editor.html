@@ -90,7 +90,7 @@
                         <div style="flex: 1;">
                             {{ render_object_inline(item, item_path) }}
                         </div>
-                        <button class="remove-btn"
+                        <button class="remove-btn" type="button"
                                 hx-delete="/api/array/remove/{{ path }}/{{ loop.index0 }}"
                                 hx-target="#array-{{ safe_id }}"
                                 hx-swap="outerHTML"
@@ -101,7 +101,7 @@
                         <div class="form-row" style="flex: 1;">
                             {{ render_scalar(item, item_path) }}
                         </div>
-                        <button class="remove-btn"
+                        <button class="remove-btn" type="button"
                                 hx-delete="/api/array/remove/{{ path }}/{{ loop.index0 }}"
                                 hx-target="#array-{{ safe_id }}"
                                 hx-swap="outerHTML"

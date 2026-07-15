@@ -369,7 +369,7 @@ def _render_array_section(array_field, array_path: str) -> str:
                 <div style="flex: 1;">
                     {_render_object_inline_html(item, item_path)}
                 </div>
-                <button class="remove-btn"
+                <button class="remove-btn" type="button"
                         hx-delete="/api/array/remove/{array_path}/{idx}"
                         hx-target="#array-{safe_id}"
                         hx-swap="outerHTML"
@@ -382,7 +382,7 @@ def _render_array_section(array_field, array_path: str) -> str:
                 <div class="form-row" style="flex: 1;">
                     {_render_scalar_html(item, item_path)}
                 </div>
-                <button class="remove-btn"
+                <button class="remove-btn" type="button"
                         hx-delete="/api/array/remove/{array_path}/{idx}"
                         hx-target="#array-{safe_id}"
                         hx-swap="outerHTML"
