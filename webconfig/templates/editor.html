@@ -20,8 +20,8 @@
         <button hx-get="/reload" hx-swap="outerHTML" hx-target="#editor-container">
             Reload
         </button>
-        <button hx-get="/?preset=light" hx-swap="outerHTML" hx-target="#editor-container">☀️</button>
-        <button hx-get="/?preset=dark" hx-swap="outerHTML" hx-target="#editor-container">🌙</button>
+        <button onclick="document.documentElement.setAttribute('preset','light');fetch('/?preset=light')">☀️</button>
+        <button onclick="document.documentElement.setAttribute('preset','dark');fetch('/?preset=dark')">🌙</button>
     </div>
 </header>
 
