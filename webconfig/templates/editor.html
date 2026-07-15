@@ -20,11 +20,8 @@
         <button hx-get="/reload" hx-swap="outerHTML" hx-target="#editor-container">
             Reload
         </button>
-        {% if preset == "auto" %}
-            <span style="font-size: var(--font-size--s2, 0.75em); color: var(--black--05, #888);">theme: auto</span>
-        {% else %}
-            <span style="font-size: var(--font-size--s2, 0.75em);">{{ preset }}</span>
-        {% endif %}
+        <button hx-get="/?preset=light" hx-swap="outerHTML" hx-target="#editor-container">☀️</button>
+        <button hx-get="/?preset=dark" hx-swap="outerHTML" hx-target="#editor-container">🌙</button>
     </div>
 </header>
 

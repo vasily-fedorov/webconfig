@@ -7,6 +7,19 @@
     <script src="/static/s4/js/s4.min.js"></script>
     <script>S4()</script>
     <script src="/static/htmx.min.js"></script>
+    <script>
+        document.addEventListener('htmx:afterSwap', function() {
+            var html = document.documentElement;
+            var preset = html.getAttribute('preset');
+            if (preset) {
+                html.removeAttribute('preset');
+                setTimeout(function() { html.setAttribute('preset', preset); }, 10);
+            }
+        });
+        document.addEventListener('htmx:beforeRequest', function(evt) {
+            var preset = evt.detail.requestConfig.parameters.preset;
+        });
+    </script>
     <style>
         .field-error { color: var(--negative, #dc2626); font-size: var(--font-size--s1, 0.875em); }
         .field-hint { color: var(--black--06, #666); font-size: var(--font-size--s1, 0.875em); }

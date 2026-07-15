@@ -49,6 +49,10 @@ def _register_routes(app: Flask) -> Flask:
         """GET / — render the editor form."""
         filename = os.path.basename(app.config["CONFIG_PATH"])
         fmt = app.config.get("CONFIG_FORMAT", "")
+        # Allow theme override via ?preset= query param
+        query_preset = request.args.get("preset")
+        if query_preset in ("light", "dark"):
+            app.config["PRESET"] = query_preset
         preset = app.config["PRESET"]
         data = app.config.get("CONFIG_DATA", {})
         schema = app.config.get("SCHEMA")

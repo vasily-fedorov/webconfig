@@ -1,0 +1,14 @@
+{
+  "desktop": {
+    "landscape": ["css/desktop/landscape.css", "css/desktop/config.css"],
+    "portrait": ["css/desktop/portrait.css", "css/desktop/config.css"]
+  },
+  "tablet": {
+    "landscape": ["css/tablet/landscape.css", "css/tablet/config.css"],
+    "portrait": ["css/tablet/portrait.css", "css/tablet/config.css"]
+  },
+  "mobile": {
+    "landscape": ["css/mobile/landscape.css", "css/mobile/config.css"],
+    "portrait": ["css/mobile/portrait.css", "css/mobile/config.css"]
+  }
+}
