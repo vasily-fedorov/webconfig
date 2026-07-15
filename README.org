@@ -1,0 +1,112 @@
+#+TITLE: Webconfig
+#+DESCRIPTION: CLI-утилита для редактирования конфигурационных файлов через Web UI
+
+Webconfig — Python CLI-утилита, запускающая локальный веб-сервер с интерфейсом
+для редактирования конфигурационного файла. Поддерживает форматы TOML, JSON, ENV
+и опциональную валидацию по JSON Schema.
+
+* Установка
+
+#+begin_src bash
+git clone <repo-url>
+cd webconfig
+python3 -m venv .venv
+.venv/bin/pip install -e .
+#+end_src
+
+Python 3.11+.
+
+* Использование
+
+#+begin_src bash
+# Минимальный вызов (порт по умолчанию 8080)
+webconfig config.toml
+
+# С указанием порта
+webconfig config.json --port 9090
+
+# С JSON Schema (enum → выпадайки, constraints, дефолты)
+webconfig config.toml --schema schema.json
+
+# Тёмная тема
+webconfig config.env --preset dark
+
+# Без открытия браузера
+webconfig config.toml --no-browser
+#+end_src
+
+Сервер стартует на ~127.0.0.1~, автоматически открывает браузер.
+Остановка: ~Ctrl+C~.
+
+* Поддерживаемые форматы
+
+| Формат | Расширение | Парсинг                     |
+|--------+------------+-----------------------------|
+| TOML   | =.toml=    | =tomllib= (Python 3.11 stdlib) |
+| JSON   | =.json=    | =json= (stdlib)                |
+| ENV    | =.env=     | Собственный парсер             |
+
+* JSON Schema
+
+При указании =--schema= редактор использует схему для:
+
+- =enum= → выпадающие списки (=<select>=)
+- =default= → значения по умолчанию для отсутствующих ключей
+- =title= → человеческие названия полей
+- =description= → тултипы (атрибут =title=)
+- =required= → обязательные поля (звёздочка + валидация)
+- =minimum= / =maximum= → ограничения чисел
+- =minLength= / =maxLength= / =pattern= → ограничения строк
+
+* Технологии
+
+| Слой            | Технология                           |
+|-----------------+--------------------------------------|
+| Бэкенд          | Python 3.11+, Flask, Jinja2          |
+| Интерактивность | HTMX 2.x (без кастомного JS)         |
+| Стили           | S4 (Система 4) — CSS-система         |
+| Валидация       | =jsonschema=                         |
+
+* Разработка
+
+#+begin_src bash
+# Установка с dev-зависимостями
+.venv/bin/pip install -e ".[dev]"
+
+# Запуск тестов
+.venv/bin/pytest tests/ -v
+
+# Запуск в dev-режиме
+.venv/bin/python -m webconfig tests/fixtures/config.toml --schema tests/fixtures/schema.json
+#+end_src
+
+* Структура проекта
+
+#+begin_src
+webconfig/
+├── webconfig/              # Пакет
+│   ├── cli.py              # argparse + main
+│   ├── server.py           # Flask-приложение, маршруты
+│   ├── parser.py           # TOML/JSON/ENV → dict
+│   ├── form_generator.py   # dict + schema → Field tree
+│   ├── validator.py        # type coercion + jsonschema
+│   ├── templates/
+│   │   ├── base.html       # S4 + HTMX setup
+│   │   └── editor.html     # Рекурсивная форма (Jinja2 macros)
+│   └── static/
+│       ├── s4/             # S4 v0.3 (vendored)
+│       └── htmx.min.js     # HTMX 2.x (vendored)
+├── tests/
+│   ├── fixtures/           # Тестовые конфиги + схема
+│   ├── test_parser.py
+│   ├── test_form_generator.py
+│   └── test_validator.py
+├── docs/superpowers/specs/ # Design document
+└── pyproject.toml
+#+end_src
+
+* Лицензия
+
+Проект — MIT.
+
+S4 (Система 4) используется под лицензией CC BY-NC-SA.
