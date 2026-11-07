@@ -60,8 +60,22 @@ CLI (argparse) → Flask app → Jinja2 templates → HTML + HTMX → Browser
 .venv/bin/pytest tests/ -v
 ```
 
-38 unit tests covering parser, form_generator, and validator. Integration tests
-use `Flask.test_client`. Test fixtures in `tests/fixtures/`.
+127 tests, all in `tests/`:
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `test_parser.py` | 14 | parse/serialize roundtrip for TOML, JSON, ENV |
+| `test_form_generator.py` | 12 | dict → `Field` tree, schema enrichment |
+| `test_form_parsing.py` | 29 | form key → nested dict (`_parse_key`, `_form_to_dict`) |
+| `test_validator.py` | 12 | type coercion, schema validation, `validate_field` |
+| `test_validator_comprehensive.py` | 43 | every type, constraint, nesting and array case |
+| `test_server_array.py` | 17 | `/api/array/add` and `/api/array/remove` endpoints |
+
+Unit tests import from `webconfig.*` directly; endpoint tests use
+`Flask.test_client` against a `tmp_path` copy of the fixtures in `tests/fixtures/`.
+Any change to the array endpoints or their path helpers needs a
+`test_server_array.py` case, since those routes are not reachable from the
+parser/validator unit tests.
 
 ## Code Style
 
