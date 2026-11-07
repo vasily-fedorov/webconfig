@@ -174,7 +174,7 @@ def _register_routes(app: Flask) -> Flask:
         fmt = app.config.get("CONFIG_FORMAT", "")
 
         data = app.config.get("CONFIG_DATA", {})
-        _add_array_element(data, array_path)
+        _add_array_element(data, array_path, schema)
         app.config["CONFIG_DATA"] = data
 
         field_tree = generator.generate(data, schema)
@@ -290,44 +290,125 @@ def _set_nested(d: dict, key: str, value):
                 node = node.setdefault(part, [] if next_is_index else {})
 
 
-def _add_array_element(data: dict, path: str):
-    """Add a default element to an array at the given path."""
-    parts = _parse_key_path(path)
-    current = data
-    for i, part in enumerate(parts):
-        if part.startswith("[") and part.endswith("]"):
-            continue
-        if part not in current:
-            current[part] = []
-        if i == len(parts) - 1:
-            arr = current[part]
-            if not isinstance(arr, list):
-                arr = []
-                current[part] = arr
-            # Determine default value based on existing items
-            if arr and isinstance(arr[0], dict):
-                # Array of objects — add empty dict
-                arr.append({})
-            elif arr:
-                # Array of scalars — add same type
-                arr.append("")
-            else:
-                arr.append("")
+_MISSING = object()
+
+
+def _lookup(node, parts: list):
+    """Walk *node* along *parts*, returning ``_MISSING`` when a step is absent.
+
+    String parts index dicts, int parts index lists — matching ``_parse_key``.
+    """
+    for part in parts:
+        if isinstance(part, int):
+            if not isinstance(node, list) or not 0 <= part < len(node):
+                return _MISSING
+            node = node[part]
         else:
-            current = current[part]
+            if not isinstance(node, dict) or part not in node:
+                return _MISSING
+            node = node[part]
+    return node
+
+
+def _resolve_parent(node, parts: list):
+    """Return the dict owning the last path segment, creating missing objects.
+
+    Returns ``_MISSING`` rather than clobbering an existing non-object value.
+    """
+    for part in parts:
+        if isinstance(part, int):
+            if not isinstance(node, list) or not 0 <= part < len(node):
+                return _MISSING
+            node = node[part]
+            continue
+        if not isinstance(node, dict):
+            return _MISSING
+        node = node.setdefault(part, {})
+    return node if isinstance(node, dict) else _MISSING
+
+
+def _schema_node(schema: dict | None, parts: list) -> dict | None:
+    """Resolve the schema node for *parts*; indices descend into ``items``."""
+    node = schema
+    for part in parts:
+        if not isinstance(node, dict):
+            return None
+        if isinstance(part, int):
+            node = node.get("items")
+        else:
+            node = (node.get("properties") or {}).get(part)
+    return node
+
+
+def _empty_like(value):
+    """Produce an empty value shaped like *value* (used for new array items)."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return type(value)()
+    if isinstance(value, list):
+        return []
+    if isinstance(value, dict):
+        return {k: _empty_like(v) for k, v in value.items()}
+    return ""
+
+
+def _default_item(items_schema: dict | None, arr: list):
+    """Default value for a newly added array element."""
+    if isinstance(items_schema, dict):
+        if "default" in items_schema:
+            return items_schema["default"]
+        if items_schema.get("enum"):
+            return items_schema["enum"][0]
+        factories = {
+            "object": dict,
+            "array": list,
+            "boolean": lambda: False,
+            "integer": lambda: 0,
+            "number": lambda: 0,
+            "string": lambda: "",
+        }
+        factory = factories.get(items_schema.get("type"))
+        if factory is not None:
+            return factory()
+    if arr:
+        return _empty_like(arr[0])
+    return ""
+
+
+def _add_array_element(data: dict, path: str, schema: dict | None = None):
+    """Append a default element to the array addressed by *path*.
+
+    *path* uses form-key syntax (``features.names``, ``servers[0].tags``).
+    Missing intermediate objects are created; an existing non-list value is
+    left untouched.
+    """
+    parts = _parse_key(path)
+    if not parts or isinstance(parts[-1], int):
+        return
+
+    parent = _resolve_parent(data, parts[:-1])
+    if parent is _MISSING:
+        return
+
+    key = parts[-1]
+    arr = parent.get(key)
+    if arr is not None and not isinstance(arr, list):
+        return
+    if arr is None:
+        arr = []
+        parent[key] = arr
+
+    array_schema = _schema_node(schema, parts)
+    items_schema = array_schema.get("items") if isinstance(array_schema, dict) else None
+    arr.append(_default_item(items_schema, arr))
 
 
 def _remove_array_element(data: dict, path: str, index: int):
-    """Remove an element from an array at the given path."""
-    parts = _parse_key_path(path)
-    current = data
-    for part in parts:
-        if part.startswith("[") and part.endswith("]"):
-            continue
-        if part in current:
-            current = current[part]
-    if isinstance(current, list) and 0 <= index < len(current):
-        current.pop(index)
+    """Remove ``index`` from the array addressed by *path* (no-op when invalid)."""
+    arr = _lookup(data, _parse_key(path))
+    if isinstance(arr, list) and 0 <= index < len(arr):
+        arr.pop(index)
 
 
 def _find_field(field_tree, path: str):
@@ -335,20 +416,18 @@ def _find_field(field_tree, path: str):
     if field_tree.path == path:
         return field_tree
 
-    import re
-
-    parts = _parse_key_path(path)
     current = field_tree
-    for part in parts:
-        if part.startswith("[") and part.endswith("]"):
+    for part in _parse_key(path):
+        if isinstance(part, int):
+            if not 0 <= part < len(current.children):
+                return None
+            current = current.children[part]
             continue
-        found = False
         for child in current.children:
             if child.key == part:
                 current = child
-                found = True
                 break
-        if not found:
+        else:
             return None
     return current
 
