@@ -1,1 +1,10 @@
-__pycache__/\n.venv/\n*.egg-info/\n.pytest_cache/\n*.pyc\n
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# Local tooling artifacts
+.playwright-mcp/
+.omo/run-continuation/
